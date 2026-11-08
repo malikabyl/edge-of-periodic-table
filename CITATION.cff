@@ -7,4 +7,5 @@ license: MIT
 repository-code: "https://github.com/malikabyl/edge-of-periodic-table"
 keywords: [nuclear physics, superheavy elements, periodic table, machine learning, r-process]
 version: "1.0"
+doi: "10.5281/zenodo.24058025"
 date-released: "2026-11-08"

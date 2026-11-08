@@ -1,5 +1,7 @@
 # Edge of the Periodic Table: three open-data experiments
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24058025.svg)](https://doi.org/10.5281/zenodo.24058025)
+
 Three questions about the far end of the periodic table, answered only with published open datasets and a few hundred lines of Python:
 
 1. **Can the periodic table be rebuilt from scratch?** From a single filling rule, and separately from data alone.
@@ -113,6 +115,10 @@ Tested with Python 3.13, numpy 2.5, pandas 3.0, scikit-learn 1.9, mendeleev 1.3.
 ## Use of AI
 
 This project was carried out with Claude (Anthropic), an AI assistant, under the direction of the repository author. The AI wrote the code, ran the analyses and drafted the text. The author chose the questions and the direction of each step, and is responsible for the content. AI tools are not authors. Please treat the results as a reproducible exploratory study, not peer-reviewed work. Corrections from nuclear physicists and astronomers are very welcome; please open an issue.
+
+## How to cite
+
+Malik (2026). *Edge of the Periodic Table: three open-data experiments* (v1.0). Zenodo. https://doi.org/10.5281/zenodo.24058025
 
 ## License
 
