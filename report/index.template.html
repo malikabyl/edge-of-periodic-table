@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Край таблицы Менделеева</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a lab notebook — one column of prose ~65ch, figures break out to full width; block colours = orbital types s p d f g */
+:root{
+  --bg:#f4f5f7; --panel:#ffffff; --ink:#151922; --muted:#5b6372; --line:#d9dde4;
+  --accent:#2448c8; --warn:#c7741a; --ok:#2f7d55; --bad:#b4343a;
+  --s:#e8b04a; --p:#5aa58a; --d:#5b86d6; --f:#b072c4; --g:#d06a6a;
+  --display:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  --body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#11141a; --panel:#181c24; --ink:#e7eaf0; --muted:#9aa3b2; --line:#2b313d;
+  --accent:#7d9bff; --warn:#e6a04f; --ok:#5fbf8b; --bad:#ef6b70;
+  --s:#d9a440; --p:#4f9e82; --d:#5d84cf; --f:#a76bbb; --g:#c96262; color-scheme: dark; } }
+:root[data-theme="dark"]{
+  --bg:#11141a; --panel:#181c24; --ink:#e7eaf0; --muted:#9aa3b2; --line:#2b313d;
+  --accent:#7d9bff; --warn:#e6a04f; --ok:#5fbf8b; --bad:#ef6b70;
+  --s:#d9a440; --p:#4f9e82; --d:#5d84cf; --f:#a76bbb; --g:#c96262; color-scheme: dark; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--body)}
+main{max-width:1080px;margin:0 auto;padding:28px 18px 64px;display:grid;gap:56px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(30px,5vw,46px);font-weight:700;letter-spacing:-.01em}
+h2{font-size:clamp(24px,3.4vw,32px);font-weight:600}
+h3{font-size:19px;font-weight:600}
+p{margin:0;max-width:68ch}
+.prose{display:grid;gap:14px}
+.muted{color:var(--muted)}
+.mono,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.kicker{font:500 13px/1 var(--mono);color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
+section{display:grid;gap:22px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:grid;gap:6px;align-content:start}
+.tile b{font:600 26px/1.1 var(--display)}
+.tile span{color:var(--muted);font-size:14px;line-height:1.45}
+figure{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:12px;position:relative}
+figcaption{font-size:14px;color:var(--muted);max-width:80ch}
+figcaption b{color:var(--ink)}
+.scroll{overflow-x:auto}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls label{font-size:14px;color:var(--muted)}
+button.seg{font:500 14px var(--body);background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer}
+button.seg[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+button.seg:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select{font:14px var(--body);background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.findings{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.finding{border-left:3px solid var(--accent);padding:4px 0 4px 14px;display:grid;gap:4px}
+.finding.warn{border-color:var(--warn)}
+.finding h3{font-size:17px}
+.finding p{font-size:15px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:13px}
+td.r,th.r{text-align:right}
+td.num{white-space:nowrap}
+.pill{display:inline-block;font:500 12px var(--mono);padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:13px;line-height:1.4;padding:8px 10px;border-radius:6px;max-width:260px;opacity:0;transition:opacity .1s;z-index:5}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.info{font-size:14px;min-height:3.2em;color:var(--muted)}
+.info b{color:var(--ink)}
+svg text{fill:var(--ink)}
+svg .ax text{fill:var(--muted);font:11px var(--mono)}
+svg .ax line,svg .ax path{stroke:var(--line)}
+.verdict{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:18px 20px;display:grid;gap:10px}
+.verdict ol{margin:0;padding-left:20px;display:grid;gap:8px;max-width:72ch}
+.verdict h2{font-size:24px}
+.sources{font-size:14px;display:grid;gap:6px;padding-left:18px;margin:0}
+.sources a{color:var(--accent)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+
+<header class="prose">
+  <div class="kicker">Три опыта у края таблицы · ноябрь 2026</div>
+  <h1>Край таблицы Менделеева</h1>
+  <p>Три вопроса, на которые я попробовал ответить на открытых данных. Можно ли собрать таблицу Менделеева из одного правила? Может ли модель машинного обучения предсказать, как долго проживут ещё не открытые элементы 119 и 120? Можно ли найти в древних звёздах следы ядер тяжелее урана? Код работает только с опубликованными базами, поэтому каждое число здесь можно пересчитать.</p>
+  <div class="tiles" id="tiles"></div>
+  <div class="verdict">
+    <h2>Общий вывод</h2>
+    <p><b>Таблица Менделеева не устарела, но на её краю кончается простая логика и начинают решать данные.</b></p>
+    <ol>
+      <li><b>Логика таблицы выводится, но только до края.</b> Одно правило заполнения оболочек даёт все семь периодов, и энергии ионизации без всякой теории дают те же границы. У самых тяжёлых элементов правило сбивается из-за эффектов теории относительности, и в 8-м периоде оно, скорее всего, сломается.</li>
+      <li><b>ИИ силён рядом с данными и честно показывает, где их нет.</b> Слепой прогноз для ливермория, теннессина и оганесона ошибается примерно в 2 раза. Для 119–120 уверенность появилась только после того, как модель получила реальные измерения цепочек распада. Об острове стабильности модель по-прежнему почти ничего не знает: рядом нет измерений.</li>
+      <li><b>Простое переносится дальше сложного.</b> И для α-распада, и для деления за краем данных лучше всего работали самые простые формулы. Сложные модели и теоретические барьеры деления подгоняются под известное и проигрывают на неизвестном.</li>
+      <li><b>Природа может заглянуть дальше ускорителей.</b> Состав старых звёзд намекает, что при слиянии нейтронных звёзд рождаются ядра тяжелее урана. Наша проверка подтвердила это частично и на малой выборке.</li>
+    </ol>
+    <p><b>Ответ на исходный вопрос:</b> таблицу нужно не пересматривать, а достраивать. По прогнозу 119-й проживёт около 1–5 мс, а 120-й — около 0,06–0,4 мс, и распадутся они α-распадом, то есть их можно обнаружить. Когда Дубна или Беркли объявят результат, его можно будет сверить с этим прогнозом.</p>
+  </div>
+</header>
+
+<!-- ================= 1. PERIODIC TABLE ================= -->
+<section id="table">
+  <div class="prose">
+    <div class="kicker">Опыт 1 · логика</div>
+    <h2>Таблица из одного правила</h2>
+    <p>Подсказка в самой таблице: длины периодов 2, 8, 8, 18, 18, 32, 32 — это удвоенные квадраты (2·1², 2·2², 2·3², 2·4²), и каждая, кроме первой, повторяется дважды. Чтобы получить их, хватает двух фактов. Первый: подоболочка типа <span class="mono">l</span> вмещает 2(2<span class="mono">l</span>+1) электронов, то есть s — 2, p — 6, d — 10, f — 14, g — 18. Второй — правило Маделунга: подоболочки заполняются по возрастанию суммы <span class="mono">n+l</span>, а при равенстве — по возрастанию <span class="mono">n</span>. Новый период начинается, когда открывается новая s-подоболочка.</p>
+    <p>Программа ниже не знает химии. Она раскладывает 172 электрона по этому правилу и сама расставляет элементы по клеткам.</p>
+  </div>
+  <figure>
+    <div class="controls" role="group" aria-label="Режим таблицы">
+      <button class="seg" id="pt-rule" aria-pressed="true">По правилу</button>
+      <button class="seg" id="pt-exc" aria-pressed="false">Где природа спорит с правилом</button>
+      <button class="seg" id="pt-8" aria-pressed="false">Показать 8-й период</button>
+    </div>
+    <div class="scroll"><svg id="pt" role="img" aria-label="Таблица, построенная по правилу Маделунга"></svg></div>
+    <div class="legend" id="pt-legend"></div>
+    <div class="info" id="pt-info">Нажмите на клетку, чтобы сравнить конфигурацию по правилу с реальной.</div>
+    <figcaption><b>Длины периодов по правилу:</b> <span class="mono" id="pt-lengths"></span>. Реальные конфигурации электронов взяты из пакета mendeleev; для Ds и Rg это расчёты, а не измерения.</figcaption>
+  </figure>
+
+  <figure>
+    <h3>Та же таблица, но только из данных</h3>
+    <div class="scroll"><svg id="ie" role="img" aria-label="Первая энергия ионизации по атомному номеру"></svg></div>
+    <figcaption><b>Второй способ вообще без теории.</b> Это энергия, нужная, чтобы оторвать от атома один электрон. Программа ищет места, где у следующего элемента она падает больше чем вдвое. Таких мест шесть: после Z = <span class="mono" id="ie-nobles"></span>. Это благородные газы, и из них получаются периоды <span class="mono" id="ie-lengths"></span> — те же, что дало правило. Для Z > 108 измерений нет.</figcaption>
+  </figure>
+
+  <div class="findings">
+    <div class="finding"><h3>Гелий встаёт над бериллием</h3><p>По электронам у гелия заполнена s-оболочка (s²), как у бериллия. Над неоном его ставят из-за химии: гелий инертен. Логика и химия здесь расходятся честно.</p></div>
+    <div class="finding"><h3>В 3-й группе Lu и Lr, а не La и Ac</h3><p>Правило начинает d-блок с лютеция и лоуренсия. Об этом спорили десятилетиями, и рабочая группа IUPAC склонилась к тому же варианту.</p></div>
+    <div class="finding warn"><h3>22 исключения из 118</h3><p>Cr и Cu забирают электрон из s, чтобы наполовину или полностью заполнить d. У лантаноидов и актиноидов спорят f и d. У лоуренсия электрон уходит в 7p — это эффект теории относительности.</p></div>
+    <div class="finding warn"><h3>8-й период: 50 клеток и g-блок</h3><p>Правило предсказывает 50 элементов (119–168) и новый g-блок, начиная со 121-го. Но релятивистские расчёты говорят, что после 120-го оболочки перемешиваются: по ним у 121-го первый электрон идёт в 8p, а не в 5g. Здесь простое правило, скорее всего, перестаёт работать.</p></div>
+  </div>
+</section>
+
+<!-- ================= 2. NUCLEI ================= -->
+<section id="nuclei">
+  <div class="prose">
+    <div class="kicker">Опыт 2 · машинное обучение</div>
+    <h2>Ядра: где модель знает, а где гадает</h2>
+    <p>Данные: 2550 измеренных масс ядер из базы AME2020. Измеренные массы заканчиваются на дармштадтии (Z = 110); для всего, что тяжелее, в базе стоят оценки. Модель устроена в два слоя. Внизу формула жидкой капли (Вейцзеккер, 1935): шесть членов — объём, поверхность, отталкивание протонов, асимметрия, спаривание, поправка Вигнера. Сверху гауссов процесс учит поправку к формуле и для каждого ядра сообщает, насколько он не уверен.</p>
+    <p>Главная проверка — честная: часть ядер прячем и смотрим, как модель их угадывает. Внутри данных, вдоль нейтронно-избыточного края и полностью за краем (все Z ≥ 99).</p>
+  </div>
+  <figure>
+    <h3>Ошибка энергии связи, МэВ</h3>
+    <div class="scroll"><table id="evaltab"></table></div>
+    <figcaption><b>Как читать:</b> средняя ошибка (RMS) на спрятанных ядрах; в скобках — какую неуверенность модель сама себе приписала. Энергия связи тяжёлого ядра ~1900 МэВ, так что 1 МэВ — это 0,05%. Но для периода полураспада и этого мало: Qα — разность трёх энергий связи, и ошибки на ней складываются. Неожиданность: «физический» вариант с оболочечной поправкой за краем данных работает <i>хуже</i> чистой капли. Грубая физика в основе вредит больше, чем её отсутствие.</figcaption>
+  </figure>
+
+  <figure>
+    <h3>Карта ядер: прогноз периода α-распада</h3>
+    <div class="controls">
+      <label for="hm-var">Модель</label>
+      <select id="hm-var"></select>
+      <button class="seg" id="hm-med" aria-pressed="true">Прогноз</button>
+      <button class="seg" id="hm-unc" aria-pressed="false">Неуверенность</button>
+    </div>
+    <div class="scroll"><svg id="hm" role="img" aria-label="Карта предсказанных периодов полураспада"></svg></div>
+    <div class="legend" id="hm-legend"></div>
+    <figcaption><b>По вертикали</b> — протоны Z, <b>по горизонтали</b> — нейтроны N. Обведены ядра с измеренной массой: на них модель училась. Крестиками отмечены цели нынешних экспериментов по 119-му и 120-му. Период α-распада получается из предсказанной энергии Qα через закон Виолы — Сиборга, подогнанный по <span class="mono" id="vs-n"></span> измеренным α-излучателям (ошибка ×<span class="mono" id="vs-x"></span>). Деление учтено не было: реальная жизнь ядер может быть короче. В режиме «Неуверенность» показана ширина коридора 68% в порядках величины.</figcaption>
+  </figure>
+
+  <figure>
+    <h3>Проверка на настоящих сверхтяжёлых</h3>
+    <div class="controls"><label for="sc-var">Модель</label><select id="sc-var"></select></div>
+    <div class="scroll"><svg id="sc" role="img" aria-label="Предсказанный и измеренный период полураспада"></svg></div>
+    <figcaption id="sc-cap"></figcaption>
+  </figure>
+
+  <figure>
+    <h3>Что модель говорит о 119-м и 120-м</h3>
+    <div class="scroll"><table id="tgtab"></table></div>
+    <figcaption><b>Медианный прогноз</b> для всех целевых изотопов — миллисекунды. Это похоже на правду: измеренный оганесон-294 живёт 0,7 мс. Но коридор 68% тянется от ~10⁻⁸ с до часов: Qα известна с точностью ±2,5–3 МэВ. Модель честно говорит «не знаю». Существует ли остров стабильности, эта модель решить не может: у неё нет данных около Z = 114, N = 184. Зато видно, где новое измерение уменьшит неуверенность сильнее всего.</figcaption>
+  </figure>
+
+  <div class="prose" id="step2">
+    <div class="kicker">Шаг 2 · энергии α-распада</div>
+    <h3 style="font-size:22px">Добавили измеренные цепочки распада</h3>
+    <p>Массы сверхтяжёлых ядер напрямую не измерены, но их энергии α-распада (Qα) измерены, и с хорошей точностью: по цепочкам, где ядро распадается в ядро, оно снова распадается и так далее. Каждое такое число — это разность двух масс: B(родитель) − B(дочернее) = B(⁴He) − Qα. Гауссов процесс умеет учиться и на разностях, а не только на самих значениях. Из базы AME2020 взято <span class="mono" id="qa-n"></span> измеренных Qα (Z от <span class="mono" id="qa-z"></span>), которые добавляют новую информацию. Настройки модели не трогали: они остались теми, что подобраны раньше только по массам.</p>
+  </div>
+  <figure>
+    <h3>Честная проверка: прячем тяжёлые цепочки и угадываем их</h3>
+    <div class="scroll"><svg id="qa" role="img" aria-label="Ошибка прогноза Qα в зависимости от удалённости"></svg></div>
+    <div class="legend"><span><i style="background:var(--accent)"></i>реальная ошибка прогноза Qα</span><span><i style="background:var(--line)"></i>неуверенность, которую модель себе приписала</span></div>
+    <figcaption id="qa-cap"></figcaption>
+  </figure>
+  <figure>
+    <h3>119-й и 120-й: до и после</h3>
+    <div class="scroll"><table id="qatab"></table></div>
+    <figcaption><b>Как читать.</b> «До» — модель только на массах. «После» — с измеренными Qα; коридор по собственной оценке модели. «Калибровано» — та же модель, но с ошибкой Qα ±0,25 МэВ, как она реально ошибалась на спрятанных цепочках, плюс ошибка формулы периода полураспада. Для ядер с N = 184 калибровка не годится: они далеко от любых измерений, и модель о них по-прежнему почти ничего не знает. Существует ли остров стабильности, этот шаг не решает.<br><b>Новое узкое место — формула периода полураспада.</b> Для оганесона-294 Qα теперь точная (11,87 МэВ), но формула Виолы — Сиборга даёт ~6 мс вместо измеренных 0,7 мс. Следующее улучшение нужно делать именно там, и ещё учесть спонтанное деление.</figcaption>
+  </figure>
+
+  <div class="prose" id="step3">
+    <div class="kicker">Шаг 3 · формула распада и деление</div>
+    <h3 style="font-size:22px">Перевод энергии в период полураспада и спонтанное деление</h3>
+    <p>Энергия α-распада сама по себе ещё не говорит, сколько живёт ядро: нужна формула, которая переводит её в период полураспада. Кроме того, сверхтяжёлое ядро может не испустить α-частицу, а просто развалиться на два осколка — это спонтанное деление. Ниже обе части проверены по одному правилу: формулы подогнаны на ядрах легче резерфордия (Z &lt; 104), а оценены на сверхтяжёлых, которых они не видели.</p>
+  </div>
+  <figure>
+    <h3>Какая формула α-распада лучше переносится на сверхтяжёлые</h3>
+    <div class="scroll"><table id="laws"></table></div>
+    <figcaption id="laws-cap"></figcaption>
+  </figure>
+  <figure>
+    <h3>Слепая проверка всей цепочки на ливерморий, теннессин и оганесон</h3>
+    <div class="scroll"><svg id="e2e" role="img" aria-label="Слепой прогноз периода полураспада для Z = 116–118"></svg></div>
+    <figcaption id="e2e-cap"></figcaption>
+  </figure>
+  <figure>
+    <h3>119-й и 120-й: итоговый прогноз</h3>
+    <div class="scroll"><table id="fintab"></table></div>
+    <figcaption><b>Как читать.</b> «α» и «деление» — отдельные прогнозы для каждого способа распада; ядро распадается тем способом, который быстрее, отсюда «итог». «Шанс α» — вероятность, что ядро сначала испустит α-частицу. Это важно для эксперимента: новый элемент обычно опознают именно по цепочке α-распадов до известных ядер. Деление предсказывается очень плохо (±7–9 порядков), поэтому коридор итога стал шире, чем после шага 2, зато честнее. Для N = 184 по-прежнему нет данных: остров стабильности остаётся открытым вопросом.</figcaption>
+  </figure>
+
+  <div class="prose" id="step4">
+    <div class="kicker">Шаг 4 · барьеры деления из теории</div>
+    <h3 style="font-size:22px">Помогает ли теоретический барьер деления?</h3>
+    <p>Чтобы разделиться, ядро должно преодолеть барьер — энергетическую «горку». Чем он выше, тем дольше ядро не делится. Высоту барьера для тысяч ядер считают теоретики. Я взял две открытые таблицы из базы ядерных данных TALYS: HFB-14 (Гориели и др.) и новейшую BSkG3 (2023), и проверил их на <span class="mono" id="sf2-n"></span> ядрах с измеренным делением.</p>
+  </div>
+  <figure>
+    <h3>Модели деления на спрятанных сверхтяжёлых</h3>
+    <div class="scroll"><table id="sf2tab"></table></div>
+    <figcaption id="sf2-cap"></figcaption>
+  </figure>
+  <figure>
+    <h3>119-й и 120-й: что остаётся после всех шагов</h3>
+    <div class="scroll"><table id="fin2tab"></table></div>
+    <figcaption><b>Главный вывод шага 4.</b> Две разумные модели деления расходятся для 119–120 на 4–12 порядков: модель по данным даёт минуты–часы, формула — годы и больше. Но обе согласны в главном: деление медленнее α-распада, который занимает доли миллисекунды. Поэтому период полураспада 119-го и 120-го определяет α-распад, и он предсказан достаточно уверенно: 119-й живёт около 1–5 мс, 120-й — около 0,06–0,4 мс. Для ядер с N = 184 модели расходятся даже в том, какой распад победит.</figcaption>
+  </figure>
+</section>
+
+<!-- ================= 3. STARS ================= -->
+<section id="stars">
+  <div class="prose">
+    <div class="kicker">Опыт 3 · астрофизика</div>
+    <h2>Звёзды: следы ядер тяжелее урана</h2>
+    <p>Данные: JINAbase — сводная база химического состава старых звёзд с малым содержанием железа (<span class="mono" id="st-n"></span> звёзд после объединения повторных измерений). Европий (Eu) — маркер r-процесса: быстрого захвата нейтронов при слиянии нейтронных звёзд. Барий (Ba) делается в основном медленным s-процессом в старых звёздах-гигантах.</p>
+  </div>
+  <figure>
+    <h3>Поиск аномалий без подсказок</h3>
+    <div class="scroll"><svg id="eu" role="img" aria-label="Европий относительно железа"></svg></div>
+    <div class="legend" id="eu-legend"></div>
+    <figcaption id="eu-cap"></figcaption>
+  </figure>
+
+  <figure>
+    <h3>Какие элементы растут вместе с европием</h3>
+    <div class="scroll"><svg id="br" role="img" aria-label="Наклон зависимости от европия"></svg></div>
+    <figcaption><b>Для звёзд с r-процессом</b> (<span class="mono">[Eu/Fe]</span> > 0,3) посчитан наклон: на сколько растёт элемент, когда европия в 10 раз больше. Наклон 1 — растут вместе. Sr, Y, Zr растут медленнее: у них есть свой, отдельный источник. А Ru, Pd, Ag (Z = 44–47) идут в ногу с европием и торием. В 2023 году группа Ройдерера в журнале Science нашла похожую связь более тонким методом. Они объяснили её так: Ru–Ag — осколки деления ядер с массой больше 260, то есть природа при слиянии нейтронных звёзд делает ядра тяжелее урана. Наша грубая проверка совпадает частично. La и Ba тоже растут с европием, а простой наклон не отделяет «осколки» от обычного r-процесса. И звёзд с измеренными Ru–Ag всего 15–24, у Rh — 10.</figcaption>
+  </figure>
+
+  <figure>
+    <h3>Торий: часы и аномалия</h3>
+    <div class="scroll"><svg id="th" role="img" aria-label="Распределение отношения тория к европию"></svg></div>
+    <figcaption id="th-cap"></figcaption>
+  </figure>
+</section>
+
+<section id="end">
+  <div class="prose">
+    <div class="kicker">Итог</div>
+    <h2>Что получилось</h2>
+  </div>
+  <div class="findings">
+    <div class="finding"><h3>Логика таблицы выводится</h3><p>Из одного правила выходят все семь периодов и блоки. Энергии ионизации без всякой теории дают те же границы. Ломается правило на краях: d/f-конкуренция и релятивистские эффекты.</p></div>
+    <div class="finding"><h3>ИИ хорош внутри данных, а данные решают</h3><p>Ошибка 0,46 МэВ — в шесть раз лучше формулы. На одних массах коридор для 119–120 был около 11 порядков. С измеренными энергиями распада Qα ошибка на спрятанных цепочках упала в 4 раза. Слепой прогноз полного периода полураспада для Lv, Ts и Og ошибается всего в ~2 раза. Деление предсказать трудно даже с теоретическими барьерами, но оно, скорее всего, медленнее α-распада. Поэтому прогноз держится: 119-й — около 1–5 мс, 120-й — около 0,06–0,4 мс.</p></div>
+    <div class="finding"><h3>«Аномалия» зависит от выборки</h3><p>Детектор аномалий не выделил r-II-звёзды: база собрана вокруг них, и для неё они норма. Зато s-богатые звёзды он нашёл в 5 раз чаще случайного. Звёзды дают о сверхтяжёлых то, чего пока не может дать коллайдер.</p></div>
+    <div class="finding warn"><h3>Что дальше</h3><p>Энергии распада, деление и теоретические барьеры уже проверены (шаги 2–4). Барьеры не помогли. Дальше: показать работу физику-ядерщику; заново подобрать настройки модели с учётом цепочек, чтобы она меньше осторожничала; когда объявят результаты по 119-му или 120-му, сверить с ними прогноз — это будет настоящая слепая проверка.</p></div>
+  </div>
+  <div class="prose">
+    <h3>Источники данных</h3>
+    <ul class="sources">
+      <li><a href="https://www-nds.iaea.org/amdc/">AME2020 / NUBASE2020</a> — Wang et al., Chin. Phys. C 45 (2021) 030003; Kondev et al., 030001 (массы и периоды полураспада)</li>
+      <li><a href="https://github.com/Mohammad-Mardini/JINAbase-updated">JINAbase, обновление 2021</a> — Abohalima &amp; Frebel, ApJS 238 (2018) 36</li>
+      <li><a href="https://github.com/lmmentel/mendeleev">mendeleev</a> — конфигурации электронов и энергии ионизации (по данным NIST)</li>
+      <li><a href="https://doi.org/10.1126/science.adf1341">Roederer et al., Science 382 (2023) 1177</a> — осколки деления ядер тяжелее урана в звёздах</li>
+      <li>Asplund et al., ARA&amp;A 47 (2009) 481 — солнечный состав для шкалы [X/Fe]</li>
+    </ul>
+  </div>
+</section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+const D = /*__DATA__*/null;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt = (x, d=2) => x == null || isNaN(x) ? "—" : x.toFixed(d).replace(".", ",").replace("-", "−");
+const SUP = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻','−':'⁻'};
+const p10 = v => '10' + String(Math.round(v)).split('').map(c => SUP[c] || c).join('');
+function human(lt){ const s = Math.pow(10, lt);
+  if(s < 1e-6) return p10(lt) + ' с'; if(s < 1e-3) return fmt(s*1e6,1) + ' мкс'; if(s < 1) return fmt(s*1e3,1) + ' мс';
+  if(s < 60) return fmt(s,1) + ' с'; if(s < 3600) return fmt(s/60,1) + ' мин'; if(s < 86400*365) return fmt(s/3600,1) + ' ч'; if(s < 3.15e11) return fmt(s/3.15e7,1) + ' лет'; return '~' + p10(Math.log10(s/3.15e7)) + ' лет'; }
+const BLK = {s:"--s", p:"--p", d:"--d", f:"--f", g:"--g"};
+const BLKNAME = {s:"s-блок", p:"p-блок", d:"d-блок", f:"f-блок", g:"g-блок (предсказан)"};
+
+function tooltip(fig){
+  let t = fig.querySelector(".tip");
+  if(!t){ t = document.createElement("div"); t.className = "tip"; fig.appendChild(t); }
+  return {
+    show(ev, text){
+      t.textContent = ""; text.split("\n").forEach((line,i)=>{ if(i) t.appendChild(document.createElement("br")); t.appendChild(document.createTextNode(line)); });
+      const r = fig.getBoundingClientRect();
+      let x = ev.clientX - r.left + 12, y = ev.clientY - r.top + 12;
+      t.style.opacity = 1;
+      const w = t.offsetWidth, h = t.offsetHeight;
+      if(x + w > r.width - 8) x = Math.max(8, ev.clientX - r.left - w - 12);
+      if(y + h > r.height - 8) y = Math.max(8, ev.clientY - r.top - h - 12);
+      t.style.left = x + "px"; t.style.top = y + "px";
+    },
+    hide(){ t.style.opacity = 0; }
+  };
+}
+function width(el){ return Math.max(320, el.closest("figure").clientWidth - 34); }
+
+/* ---------- tiles ---------- */
+(function(){
+  const ev = D.eval["LDM+GP"];
+  const tg = D.targets.find(t => t.Z === 120 && t.N === 179)["LDM+GP"];
+  const br = D.stars.bridge;
+  const tiles = [
+    [D.periodic.lengths.slice(0,7).join(" · "), "периоды из одного правила; энергии ионизации без теории дают те же границы"],
+    [fmt(ev.random.rms) + " → " + fmt(ev["Z>=99"].rms) + " МэВ", "ошибка энергии связи внутри данных и за краем. Слепой прогноз периода полураспада для Lv, Ts, Og ошибается в ~" + fmt(Math.pow(10, D.decay.e2e_rms),0) + " раза"],
+    ["Ru, Pd, Ag ≈ " + fmt((br.Ru.slope + br.Pd.slope + br.Ag.slope)/3,1), "наклон к европию в r-звёздах, как у тория (" + fmt(br.Th.slope,1) + "); у Sr, Y, Zr — " + fmt(br.Sr.slope,1) + "–" + fmt(br.Y.slope,1)],
+  ];
+  const box = document.getElementById("tiles");
+  tiles.forEach(([b,s]) => { const d = document.createElement("div"); d.className = "tile";
+    const bb = document.createElement("b"); bb.textContent = b; const ss = document.createElement("span"); ss.textContent = s;
+    d.append(bb, ss); box.appendChild(d); });
+})();
+
+/* ---------- 1a periodic table ---------- */
+(function(){
+  const els = D.periodic.elements.map(([Z,sym,period,block,col,last]) => ({Z,sym,period,block,col,last}));
+  const exc = new Map(D.periodic.exceptions.map(e => [e.Z, e]));
+  const svg = d3.select("#pt"), fig = document.getElementById("pt").closest("figure"), tip = tooltip(fig);
+  let mode = "rule", show8 = false;
+  document.getElementById("pt-lengths").textContent = D.periodic.lengths.slice(0,8).join(", ") + " (дальше — 9-й период)";
+  const L = document.getElementById("pt-legend");
+  ["s","p","d","f","g"].forEach(b => { const s = document.createElement("span"); const i = document.createElement("i"); i.style.background = `var(${BLK[b]})`; s.append(i, BLKNAME[b]); L.appendChild(s); });
+  const ex = document.createElement("span"); const ei = document.createElement("i"); ei.style.border = `2px solid var(--bad)`; ex.append(ei, "реальная конфигурация отличается от правила"); L.appendChild(ex);
+  function madelung(Z){
+    const orb = []; for(let n=1;n<10;n++) for(let l=0;l<n;l++) orb.push([n,l]);
+    orb.sort((a,b) => (a[0]+a[1]) - (b[0]+b[1]) || a[0]-b[0]);
+    let left = Z, out = [];
+    for(const [n,l] of orb){ if(left<=0) break; const k = Math.min(2*(2*l+1), left); out.push(n + "spdfg"[l] + k); left -= k; }
+    return out;
+  }
+  function info(e){
+    const box = document.getElementById("pt-info"); box.textContent = "";
+    const b = document.createElement("b"); b.textContent = (e.sym || "Z=" + e.Z) + " (Z = " + e.Z + ")"; box.appendChild(b);
+    const conf = madelung(e.Z);
+    box.appendChild(document.createTextNode(" · по правилу: …" + conf.slice(-3).join(" ")));
+    const x = exc.get(e.Z);
+    if(x) box.appendChild(document.createTextNode(" · в реальности: " + x.real + " (" + Object.entries(x.diff).map(([o,v]) => o + " " + v).join(", ") + ")"));
+    else if(e.Z <= 118) box.appendChild(document.createTextNode(" · совпадает с реальностью"));
+    else box.appendChild(document.createTextNode(" · элемент ещё не открыт; это чистое предсказание правила"));
+  }
+  function draw(){
+    const list = els.filter(e => e.period <= (show8 ? 8 : 7));
+    const cols = show8 ? 50 : 32, W = width(document.getElementById("pt"));
+    const cell = Math.max(show8 ? 17 : 22, Math.floor(W / cols)), H = cell * (show8 ? 8 : 7);
+    svg.attr("width", cell*cols).attr("height", H + 2).attr("viewBox", `0 0 ${cell*cols} ${H+2}`);
+    svg.selectAll("*").remove();
+    const g = svg.selectAll("g").data(list).join("g").attr("transform", e => `translate(${e.col*cell},${(e.period-1)*cell})`)
+      .style("cursor","pointer")
+      .on("click", (ev,e) => info(e))
+      .on("mousemove", (ev,e) => tip.show(ev, (e.sym || "Z=" + e.Z) + " · Z " + e.Z + "\nпоследний электрон: " + e.last + "\n" + BLKNAME[e.block]))
+      .on("mouseleave", () => tip.hide());
+    const isExc = e => mode === "exc" && exc.has(e.Z);
+    g.append("rect").attr("x",1).attr("y",1).attr("width",cell-2).attr("height",cell-2).attr("rx",3)
+      .attr("fill", e => `var(${BLK[e.block]})`)
+      .attr("opacity", e => mode === "exc" && !exc.has(e.Z) ? .28 : (e.Z > 118 ? .55 : 1))
+      .attr("stroke", e => isExc(e) ? css("--bad") : "none").attr("stroke-width", 2.5);
+    g.append("text").attr("x", cell/2).attr("y", cell*0.62).attr("text-anchor","middle")
+      .attr("font-size", Math.min(12, cell*0.42)).attr("font-family","IBM Plex Sans Condensed, sans-serif").attr("font-weight",600)
+      .style("fill","#14171f").text(e => e.sym || (cell >= 20 ? e.Z : ""));
+  }
+  const b1 = document.getElementById("pt-rule"), b2 = document.getElementById("pt-exc"), b3 = document.getElementById("pt-8");
+  b1.onclick = () => { mode="rule"; b1.setAttribute("aria-pressed","true"); b2.setAttribute("aria-pressed","false"); draw(); };
+  b2.onclick = () => { mode="exc"; b2.setAttribute("aria-pressed","true"); b1.setAttribute("aria-pressed","false"); draw(); };
+  b3.onclick = () => { show8 = !show8; b3.setAttribute("aria-pressed", String(show8)); draw(); };
+  draw(); window.addEventListener("resize", draw);
+})();
+
+/* ---------- 1b ionization energy ---------- */
+(function(){
+  const pts = D.periodic.ie1, nob = new Set(D.periodic.nobles);
+  document.getElementById("ie-nobles").textContent = D.periodic.nobles.join(", ");
+  document.getElementById("ie-lengths").textContent = D.periodic.data_lengths.join(", ");
+  const el = document.getElementById("ie"), svg = d3.select(el), fig = el.closest("figure"), tip = tooltip(fig);
+  const sym = new Map(D.periodic.elements.map(e => [e[0], e[1]]));
+  function draw(){
+    const W = width(el), H = 270, m = {l:38, r:12, t:30, b:30};
+    svg.attr("width","100%").attr("viewBox",`0 0 ${W} ${H}`); svg.selectAll("*").remove();
+    const x = d3.scaleLinear([1,108],[m.l,W-m.r]), y = d3.scaleLinear([0,26],[H-m.b,m.t]);
+    svg.append("g").attr("class","ax").attr("transform",`translate(0,${H-m.b})`).call(d3.axisBottom(x).ticks(W<500?6:12));
+    svg.append("g").attr("class","ax").attr("transform",`translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickSize(-(W-m.l-m.r))).call(g=>g.selectAll("line").attr("opacity",.5));
+    svg.append("text").attr("x",m.l+40).attr("y",m.t-16).attr("font-size",11).style("fill",css("--muted")).text("энергия ионизации, эВ");
+    svg.append("text").attr("x",W-m.r).attr("y",H-4).attr("text-anchor","end").attr("font-size",11).style("fill",css("--muted")).text("атомный номер Z");
+    svg.append("path").datum(pts).attr("fill","none").attr("stroke",css("--accent")).attr("stroke-width",1.6).attr("d", d3.line(d=>x(d[0]), d=>y(d[1])));
+    svg.selectAll("circle").data(pts).join("circle").attr("cx",d=>x(d[0])).attr("cy",d=>y(d[1])).attr("r",d=>nob.has(d[0])?5:2.2)
+      .attr("fill",d=>nob.has(d[0])?css("--warn"):css("--accent"))
+      .on("mousemove",(ev,d)=>tip.show(ev, sym.get(d[0]) + " · Z " + d[0] + "\n" + fmt(d[1]) + " эВ")).on("mouseleave",()=>tip.hide());
+    svg.selectAll("text.nl").data(pts.filter(d=>nob.has(d[0]))).join("text").attr("class","nl").attr("x",d=>x(d[0])).attr("y",d=>y(d[1])-9)
+      .attr("text-anchor","middle").attr("font-size",12).attr("font-weight",600).text(d=>sym.get(d[0]));
+  }
+  draw(); window.addEventListener("resize", draw);
+})();
+
+/* ---------- 2a eval table ---------- */
+(function(){
+  const t = document.getElementById("evaltab");
+  const names = {"LDM":"Формула капли","LDM+GP":"Капля + ИИ (гауссов процесс)","LDM+shell(Z114)":"Капля + оболочки","LDM+shell(Z114)+GP":"Капля + оболочки (Z=114) + ИИ","LDM+shell(Z126)+GP":"Капля + оболочки (Z=126) + ИИ"};
+  const splits = [["random","Внутри данных"],["n-rich edge","Нейтронный край"],["Z>=99","За краем, Z ≥ 99"]];
+  const head = t.createTHead().insertRow(); ["Модель", ...splits.map(s=>s[1])].forEach((h,i)=>{ const th=document.createElement("th"); th.textContent=h; if(i) th.className="r"; head.appendChild(th); });
+  const nrow = t.createTHead().insertRow(); ["число спрятанных ядер", ...splits.map(s=>D.eval["LDM"][s[0]].n)].forEach((h,i)=>{ const th=document.createElement("th"); th.textContent=h; if(i) th.className="r"; nrow.appendChild(th); });
+  const body = t.createTBody();
+  Object.keys(names).forEach(k => { const r = body.insertRow(); r.insertCell().textContent = names[k];
+    splits.forEach(([s]) => { const c = r.insertCell(); c.className = "r num"; const v = D.eval[k][s];
+      c.textContent = fmt(v.rms) + (v.mean_sigma > 0 ? "  (±" + fmt(v.mean_sigma) + ")" : ""); }); });
+})();
+
+/* ---------- 2b heatmap ---------- */
+(function(){
+  const el = document.getElementById("hm"), svg = d3.select(el), fig = el.closest("figure"), tip = tooltip(fig);
+  const sel = document.getElementById("hm-var");
+  Object.keys(D.grid).forEach(k => { const o = document.createElement("option"); o.value = k; o.textContent = k.replace("LDM+GP","Капля + ИИ").replace("shell","оболочки").replace("+GP","+ ИИ"); sel.appendChild(o); });
+  const meas = new Set(D.measured.map(([z,n]) => z + "," + n));
+  const tg = D.targets.filter(t => t.Z >= 119);
+  let mode = "med";
+  const SYM = {104:"Rf",106:"Sg",108:"Hs",110:"Ds",112:"Cn",114:"Fl",116:"Lv",118:"Og",120:"120",122:"122",124:"124",126:"126"};
+  function draw(){
+    const cells = D.grid[sel.value].filter(c => c[0] >= 96);
+    const W = width(el), Zs = [96,126], Ns = [138,200];
+    const m = {l:34, r:8, t:8, b:30};
+    const cw = Math.max(5, (W - m.l - m.r) / (Ns[1]-Ns[0]+1)), ch = cw * 1.1;
+    const H = m.t + m.b + ch*(Zs[1]-Zs[0]+1), WW = m.l + m.r + cw*(Ns[1]-Ns[0]+1);
+    svg.attr("width", WW).attr("height", H).attr("viewBox",`0 0 ${WW} ${H}`); svg.selectAll("*").remove();
+    const x = n => m.l + (n-Ns[0])*cw, y = z => m.t + (Zs[1]-z)*ch;
+    const col = mode === "med"
+      ? d3.scaleSequential([-8, 6], d3.interpolateViridis)
+      : d3.scaleSequential([0, 16], d3.interpolateMagma).clamp(true);
+    svg.append("g").selectAll("rect").data(cells.filter(c => c[1] >= Ns[0] && c[1] <= Ns[1])).join("rect")
+      .attr("x", c => x(c[1])).attr("y", c => y(c[0])).attr("width", cw).attr("height", ch)
+      .attr("fill", c => col(mode === "med" ? Math.max(-8, Math.min(6, c[4])) : c[6]-c[5]))
+      .on("mousemove", (ev,c) => tip.show(ev, "Z " + c[0] + ", N " + c[1] + ", A " + (c[0]+c[1]) +
+        "\nQα = " + fmt(c[2]) + " ± " + fmt(c[3]) + " МэВ" + "\nT½(α) ≈ " + human(c[4]) +
+        "\nкоридор 68%: " + human(c[5]) + " … " + human(c[6]) + (meas.has(c[0]+","+c[1]) ? "\nмасса измерена" : "")))
+      .on("mouseleave", () => tip.hide());
+    svg.append("g").selectAll("rect").data(D.measured.filter(([z,n]) => z >= Zs[0] && n >= Ns[0] && n <= Ns[1])).join("rect")
+      .attr("x", d => x(d[1])+.5).attr("y", d => y(d[0])+.5).attr("width", cw-1).attr("height", ch-1)
+      .attr("fill","none").attr("stroke", css("--ink")).attr("stroke-width",1.2).attr("pointer-events","none");
+    const tgG = svg.append("g").attr("pointer-events","none");
+    tg.forEach(t => { const cx = x(t.N)+cw/2, cy = y(t.Z)+ch/2, r = Math.max(3, cw*.45);
+      tgG.append("path").attr("d",`M${cx-r},${cy-r}L${cx+r},${cy+r}M${cx-r},${cy+r}L${cx+r},${cy-r}`).attr("stroke","#fff").attr("stroke-width",2.4);
+      tgG.append("path").attr("d",`M${cx-r},${cy-r}L${cx+r},${cy+r}M${cx-r},${cy+r}L${cx+r},${cy-r}`).attr("stroke","#e5383b").attr("stroke-width",1.3); });
+    [[114,"Z=114"],[126,"Z=126"]].forEach(([z,l]) => svg.append("line").attr("x1",m.l).attr("x2",WW-m.r).attr("y1",y(z)+ch/2).attr("y2",y(z)+ch/2).attr("stroke",css("--muted")).attr("stroke-dasharray","3 3").attr("opacity",.6));
+    svg.append("line").attr("x1",x(184)+cw/2).attr("x2",x(184)+cw/2).attr("y1",m.t).attr("y2",H-m.b).attr("stroke",css("--muted")).attr("stroke-dasharray","3 3").attr("opacity",.6);
+    svg.append("text").attr("x",x(184)+cw/2+4).attr("y",m.t+12).attr("font-size",11).style("fill",css("--muted")).text("N=184");
+    const ax = svg.append("g").attr("class","ax");
+    for(let z=Zs[0]; z<=Zs[1]; z+=2) if(z % 4 === 0 || W > 700) ax.append("text").attr("x",m.l-4).attr("y",y(z)+ch*.8).attr("text-anchor","end").text(SYM[z] ? z : z);
+    for(let n=140; n<=Ns[1]; n+=10) ax.append("text").attr("x",x(n)+cw/2).attr("y",H-m.b+16).attr("text-anchor","middle").text(n);
+    ax.append("text").attr("x",WW-m.r).attr("y",H-2).attr("text-anchor","end").text("нейтроны N →");
+    // legend
+    const L = document.getElementById("hm-legend"); L.textContent = "";
+    const steps = mode === "med" ? [-8,-6,-3,0,3,6] : [0,4,8,12,16];
+    steps.forEach(v => { const s = document.createElement("span"); const i = document.createElement("i"); i.style.background = col(v);
+      s.append(i, mode === "med" ? (v === -8 ? "≤ 10⁻⁸ с" : v === 6 ? "≥ 10⁶ с (≈ 12 дней)" : p10(v) + " с") : v + " порядков"); L.appendChild(s); });
+    const s2 = document.createElement("span"); const i2 = document.createElement("i"); i2.style.border = `1.5px solid var(--ink)`; s2.append(i2, "масса измерена"); L.appendChild(s2);
+    const s3 = document.createElement("span"); s3.append("✕ цели экспериментов по 119 и 120"); L.appendChild(s3);
+  }
+  const bm = document.getElementById("hm-med"), bu = document.getElementById("hm-unc");
+  bm.onclick = () => { mode="med"; bm.setAttribute("aria-pressed","true"); bu.setAttribute("aria-pressed","false"); draw(); };
+  bu.onclick = () => { mode="unc"; bu.setAttribute("aria-pressed","true"); bm.setAttribute("aria-pressed","false"); draw(); };
+  sel.onchange = draw; draw(); window.addEventListener("resize", draw);
+  document.getElementById("vs-n").textContent = D.vs.n;
+  document.getElementById("vs-x").textContent = fmt(Math.pow(10, D.vs.rms), 0);
+})();
+
+/* ---------- 2c validation scatter ---------- */
+(function(){
+  const el = document.getElementById("sc"), svg = d3.select(el), fig = el.closest("figure"), tip = tooltip(fig);
+  const sel = document.getElementById("sc-var");
+  Object.keys(D.grid).forEach(k => { const o = document.createElement("option"); o.value = k; o.textContent = k.replace("LDM+GP","Капля + ИИ").replace("shell","оболочки").replace("+GP","+ ИИ"); sel.appendChild(o); });
+  const SY = new Map(D.periodic.elements.map(e => [e[0], e[1]]));
+  function draw(){
+    const rows = D.test.filter(t => t[0] === sel.value);
+    const W = width(el), H = Math.min(420, W*.8), m = {l:46, r:12, t:12, b:40};
+    svg.attr("width","100%").attr("viewBox",`0 0 ${W} ${H}`); svg.selectAll("*").remove();
+    const x = d3.scaleLinear([-7,4],[m.l,W-m.r]), y = d3.scaleLinear([-9,11],[H-m.b,m.t]);
+    svg.append("g").attr("class","ax").attr("transform",`translate(0,${H-m.b})`).call(d3.axisBottom(x).ticks(6).tickFormat(d=>p10(d)));
+    svg.append("g").attr("class","ax").attr("transform",`translate(${m.l},0)`).call(d3.axisLeft(y).ticks(6).tickFormat(d=>p10(d)));
+    svg.append("text").attr("x",W-m.r).attr("y",H-6).attr("text-anchor","end").attr("font-size",11).style("fill",css("--muted")).text("измерено, с");
+    svg.append("text").attr("x",m.l+4).attr("y",m.t+10).attr("font-size",11).style("fill",css("--muted")).text("предсказано, с");
+    svg.append("line").attr("x1",x(-7)).attr("y1",y(-7)).attr("x2",x(4)).attr("y2",y(4)).attr("stroke",css("--muted")).attr("stroke-dasharray","4 3");
+    svg.append("g").selectAll("line").data(rows).join("line").attr("x1",d=>x(d[3])).attr("x2",d=>x(d[3])).attr("y1",d=>y(Math.max(-9,d[5]))).attr("y2",d=>y(Math.min(11,d[6]))).attr("stroke",css("--accent")).attr("opacity",.22);
+    svg.append("g").selectAll("circle").data(rows).join("circle").attr("cx",d=>x(d[3])).attr("cy",d=>y(d[4])).attr("r",3.6).attr("fill",css("--accent"))
+      .on("mousemove",(ev,d)=>tip.show(ev, (SY.get(d[1])||d[1]) + "-" + d[2] + "\nизмерено: " + human(d[3]) + "\nпрогноз: " + human(d[4]) + "\nкоридор: " + human(d[5]) + " … " + human(d[6]))).on("mouseleave",()=>tip.hide());
+    const s = D.summary[sel.value], a = D.summary["AME2020 systematics"];
+    const cap = document.getElementById("sc-cap"); cap.textContent = "";
+    const b = document.createElement("b"); b.textContent = s.n + " сверхтяжёлых ядер (Z ≥ 104) с измеренным периодом α-распада. "; cap.appendChild(b);
+    cap.appendChild(document.createTextNode("Ни масс, ни периодов этих ядер модель не видела. Средняя ошибка — " + fmt(s.rms,1) + " порядка (в ~" + Math.round(Math.pow(10,s.rms)) + " раз), систематический сдвиг " + fmt(s.bias,1) + ". Измеренное значение попадает в коридор модели в " + Math.round(s.within_band*100) + "% случаев: коридоры широкие, но честные. Для сравнения: оценки самой базы AME2020 ошибаются на " + fmt(a.rms,1) + " порядка. Но эксперты строили их по измеренным энергиям распада тех же ядер, то есть подглядывали в ответ."));
+  }
+  sel.onchange = draw; draw(); window.addEventListener("resize", draw);
+})();
+
+/* ---------- 2d targets table ---------- */
+(function(){
+  const t = document.getElementById("tgtab"), ks = Object.keys(D.grid);
+  const h = t.createTHead().insertRow();
+  ["Ядро (реакция)", "Qα, МэВ (Капля + ИИ)", "T½ медиана", "коридор 68%", "T½ с оболочками Z=114"].forEach((s,i) => { const th = document.createElement("th"); th.textContent = s; if(i) th.className = "r"; h.appendChild(th); });
+  const b = t.createTBody();
+  const p = v => human(v);
+  D.targets.forEach(r => { const row = b.insertRow(); const a = r["LDM+GP"], s = r["shell Z=114 +GP"];
+    row.insertCell().textContent = r.label.replace("— 'island' centre?", "— центр острова?").replace("known, reference","известен, для сверки");
+    [fmt(a.Q,1) + " ± " + fmt(a.sQ,1), p(a.logT), human(a.lo) + " … " + human(a.hi), p(s.logT)].forEach(v => { const c = row.insertCell(); c.className = "r num"; c.textContent = v; }); });
+})();
+
+
+/* ---------- 2e step 2: Q-alpha ---------- */
+(function(){
+  const Q = D.qa, el = document.getElementById("qa"), svg = d3.select(el), fig = el.closest("figure"), tip = tooltip(fig);
+  document.getElementById("qa-n").textContent = Q.n_qa;
+  document.getElementById("qa-z").textContent = Q.z_range[0] + " до " + Q.z_range[1];
+  const by = d3.groups(Q.curve.filter(r => r.dist <= 4), r => r.dist).map(([d, rs]) => ({d, n: rs.length,
+    rms: Math.sqrt(d3.mean(rs, r => r.err*r.err)), sd: d3.mean(rs, r => r.sd)})).sort((a,b) => a.d - b.d);
+  function draw(){
+    const W = width(el), H = 230, m = {l:40, r:12, t:16, b:44};
+    svg.attr("width","100%").attr("viewBox",`0 0 ${W} ${H}`); svg.selectAll("*").remove();
+    const x0 = d3.scaleBand(by.map(b => b.d), [m.l, W-m.r]).padding(.3), x1 = d3.scaleBand(["rms","sd"], [0, x0.bandwidth()]).padding(.1);
+    const y = d3.scaleLinear([0, 3], [H-m.b, m.t]);
+    svg.append("g").attr("class","ax").attr("transform",`translate(${m.l},0)`).call(d3.axisLeft(y).ticks(6).tickSize(-(W-m.l-m.r))).call(g=>g.selectAll("line").attr("opacity",.5));
+    const g = svg.append("g").selectAll("g").data(by).join("g").attr("transform", b => `translate(${x0(b.d)},0)`);
+    g.selectAll("rect").data(b => [["rms", b.rms, b], ["sd", b.sd, b]]).join("rect")
+      .attr("x", d => x1(d[0])).attr("width", x1.bandwidth()).attr("y", d => y(d[1])).attr("height", d => y(0) - y(d[1])).attr("rx", 2)
+      .attr("fill", d => d[0] === "rms" ? css("--accent") : css("--line"))
+      .on("mousemove", (ev, d) => tip.show(ev, (d[0] === "rms" ? "реальная ошибка: " : "заявленная неуверенность: ") + fmt(d[1]) + " МэВ\nядер в проверке: " + d[2].n)).on("mouseleave", () => tip.hide());
+    g.append("text").attr("x", x0.bandwidth()/2).attr("y", d => y(d.rms) - 4).attr("text-anchor","middle").attr("font-size",11).attr("font-weight",600).text(d => fmt(d.rms));
+    svg.selectAll("text.xl").data(by).join("text").attr("class","xl").attr("x", b => x0(b.d) + x0.bandwidth()/2).attr("y", H-m.b+16).attr("text-anchor","middle").attr("font-size",12).text(b => "+" + b.d + " по Z");
+    svg.append("text").attr("x", W-m.r).attr("y", H-6).attr("text-anchor","end").attr("font-size",11).style("fill",css("--muted")).text("насколько дальше последнего известного элемента");
+    svg.append("text").attr("x", m.l+4).attr("y", m.t-4).attr("font-size",11).style("fill",css("--muted")).text("МэВ");
+  }
+  draw(); window.addEventListener("resize", draw);
+  const old = D.qa_test["только массы (как раньше)"], neu = D.qa_test["массы + Qα до Z=115"];
+  const cap = document.getElementById("qa-cap"); cap.textContent = "";
+  const b = document.createElement("b"); b.textContent = "Спрятали все Qα ливермория, теннессина и оганесона (Z = 116–118). "; cap.appendChild(b);
+  cap.appendChild(document.createTextNode("Модель только на массах угадала их с ошибкой " + fmt(old.rms) + " МэВ, а модель с цепочками до Z = 115 — с ошибкой " + fmt(neu.rms) + " МэВ, то есть в " + Math.round(old.rms/neu.rms) + " раза точнее. На графике та же проверка при разных границах: прячем всё, начиная с Z = 113, 114 … 118. Даже на 4 элемента вперёд ошибка около 0,2 МэВ. Но модель сама себе приписывает неуверенность в 1,3–2,6 МэВ, то есть осторожничает примерно в 10 раз. Её настройки подобраны по массам, а массы ведут себя шумнее, чем разности соседних масс."));
+})();
+
+/* ---------- 2f step 2: before / after table ---------- */
+(function(){
+  const t = document.getElementById("qatab");
+  const h = t.createTHead().insertRow();
+  ["Ядро", "Qα до, МэВ", "Qα после, МэВ", "T½ до (коридор)", "T½ после (модель)", "T½ калибровано"].forEach((s,i) => { const th = document.createElement("th"); th.textContent = s; if(i) th.className = "r"; h.appendChild(th); });
+  const b = t.createTBody();
+  D.qa.targets.forEach(r => { const row = b.insertRow();
+    row.insertCell().textContent = r.label.replace("— 'island' centre?", "— центр острова?").replace("known, reference","известен, для сверки");
+    const far = r.N >= 184;
+    [fmt(r.old.Q,1) + " ± " + fmt(r.old.sQ,1), fmt(r.Q,2) + " ± " + fmt(r.sQ,2),
+     human(r.old.lo) + " … " + human(r.old.hi), human(r.lo) + " … " + human(r.hi),
+     far ? "неприменимо" : human(r.cal.lo) + " … " + human(r.cal.hi)].forEach(v => { const c = row.insertCell(); c.className = "r num"; c.textContent = v; }); });
+})();
+
+
+/* ---------- 2g step 3 ---------- */
+(function(){
+  const F = D.decay;
+  const t = document.getElementById("laws");
+  const h = t.createTHead().insertRow();
+  ["Формула", "ошибка на обучении", "ошибка на сверхтяжёлых", "сдвиг"].forEach((x,i) => { const th = document.createElement("th"); th.textContent = x; if(i) th.className = "r"; h.appendChild(th); });
+  const b = t.createTBody();
+  const add = (name, r, kind) => { const row = b.insertRow(); row.insertCell().textContent = name;
+    [r.train_rms != null ? fmt(r.train_rms,2) : "—", fmt(r.test_rms,2), r.test_bias != null ? fmt(r.test_bias,2) : "—"].forEach(v => { const c = row.insertCell(); c.className = "r num"; c.textContent = v; });
+    if(kind) row.style.color = "var(--muted)"; };
+  Object.entries(F.alpha).forEach(([k,r]) => add("α: " + k, r));
+  Object.entries(F.sf_formulas).forEach(([k,r]) => add(k[0].toUpperCase() + k.slice(1), r, true));
+  const a = Object.values(F.alpha)[0];
+  const cap = document.getElementById("laws-cap"); cap.textContent = "";
+  const bb = document.createElement("b"); bb.textContent = "Ошибка — в порядках величины (1 = в 10 раз). "; cap.appendChild(bb);
+  const g = F.sf_curve.find(c => c.cut === 110);
+  cap.appendChild(document.createTextNode("Проверено " + a.n_test + " сверхтяжёлых α-излучателей. Самая простая формула, Виолы — Сиборга, переносится лучше всех: ошибка " + fmt(a.test_rms,2) + " порядка. Более сложные формулы точнее на обучении, но хуже за его краем: они подгоняются под лёгкие ядра. Для деления простые формулы ошибаются на 5–8 порядков. Поэтому деление я предсказываю гауссовым процессом прямо по данным о делении; если спрятать все ядра от дармштадтия (Z = 110) и тяжелее, он ошибается на " + fmt(g.rms,1) + " порядка, а одно среднее число — на " + fmt(g.const,1) + ". Деление — самая непредсказуемая часть задачи: оно сильно зависит от формы ядра."));
+})();
+(function(){
+  const F = D.decay, el = document.getElementById("e2e"), svg = d3.select(el), fig = el.closest("figure"), tip = tooltip(fig);
+  const SY = new Map(D.periodic.elements.map(e => [e[0], e[1]]));
+  const rows = F.e2e;
+  function draw(){
+    const W = width(el), H = 240, m = {l:46, r:12, t:14, b:40};
+    svg.attr("width","100%").attr("viewBox",`0 0 ${W} ${H}`); svg.selectAll("*").remove();
+    const x = d3.scaleBand(rows.map(r => SY.get(r.Z) + "-" + r.A), [m.l, W-m.r]).padding(.4), y = d3.scaleLinear([-6, 1], [H-m.b, m.t]);
+    svg.append("g").attr("class","ax").attr("transform",`translate(${m.l},0)`).call(d3.axisLeft(y).ticks(7).tickFormat(d => p10(d)).tickSize(-(W-m.l-m.r))).call(g=>g.selectAll("line").attr("opacity",.5));
+    const k = r => SY.get(r.Z) + "-" + r.A, cx = r => x(k(r)) + x.bandwidth()/2;
+    svg.selectAll("rect.band").data(rows).join("rect").attr("x", r => x(k(r))).attr("width", x.bandwidth()).attr("y", r => y(r.hi)).attr("height", r => y(r.lo) - y(r.hi)).attr("rx",3).attr("fill", css("--accent")).attr("opacity",.18);
+    svg.selectAll("line.med").data(rows).join("line").attr("x1", r => x(k(r))).attr("x2", r => x(k(r)) + x.bandwidth()).attr("y1", r => y(r.pred)).attr("y2", r => y(r.pred)).attr("stroke", css("--accent")).attr("stroke-width",2.5);
+    svg.selectAll("circle").data(rows).join("circle").attr("cx", cx).attr("cy", r => y(r.meas)).attr("r",5).attr("fill", css("--warn")).attr("stroke", css("--panel")).attr("stroke-width",1.5)
+      .on("mousemove", (ev,r) => tip.show(ev, k(r) + "\nизмерено: " + human(r.meas) + "\nпрогноз: " + human(r.pred) + "\nкоридор 68%: " + human(r.lo) + " … " + human(r.hi) + "\nшанс α первым: " + Math.round(r.p_alpha*100) + "%")).on("mouseleave", () => tip.hide());
+    svg.selectAll("text.xl").data(rows).join("text").attr("class","xl").attr("x", cx).attr("y", H-m.b+16).attr("text-anchor","middle").attr("font-size",12).text(k);
+    svg.append("text").attr("x", m.l+4).attr("y", m.t+10).attr("font-size",11).style("fill",css("--muted")).text("период полураспада, с");
+  }
+  draw(); window.addEventListener("resize", draw);
+  const inside = rows.filter(r => r.lo <= r.meas && r.meas <= r.hi).length;
+  const cap = document.getElementById("e2e-cap"); cap.textContent = "";
+  const b = document.createElement("b"); b.textContent = "Всё — массы, энергии распада, формула α-распада и деление — обучено только на ядрах до московия (Z ≤ 115). "; cap.appendChild(b);
+  cap.appendChild(document.createTextNode("Синяя черта — прогноз, полоса — коридор 68%, оранжевая точка — измерение. Средняя ошибка " + fmt(F.e2e_rms,2) + " порядка, то есть примерно в " + fmt(Math.pow(10, F.e2e_rms),1) + " раза; " + inside + " из " + rows.length + " измерений внутри коридора. Это та же задача, что для 119–120, только на шаг ближе к данным."));
+})();
+(function(){
+  const t = document.getElementById("fintab");
+  const h = t.createTHead().insertRow();
+  ["Ядро", "α", "деление", "итог: медиана", "итог: коридор 68%", "шанс α"].forEach((x,i) => { const th = document.createElement("th"); th.textContent = x; if(i) th.className = "r"; h.appendChild(th); });
+  const b = t.createTBody();
+  D.decay.final.forEach(r => { const row = b.insertRow();
+    row.insertCell().textContent = r.label.replace("— 'island' centre?", "— центр острова?").replace("known, reference","известен, для сверки");
+    [human(r.a[1]), human(r.sf[1]) + " ±" + Math.round(r.sf[2]-r.sf[1]) + " пор.", human(r.tot[1]), human(r.tot[0]) + " … " + human(r.tot[2]), Math.round(r.p_alpha*100) + "%"]
+      .forEach(v => { const c = row.insertCell(); c.className = "r num"; c.textContent = v; }); });
+})();
+
+
+/* ---------- 2h step 4 ---------- */
+(function(){
+  const S = D.sf2; document.getElementById("sf2-n").textContent = S.n;
+  const t = document.getElementById("sf2tab"), cuts = ["104","106","108","110"];
+  const h = t.createTHead().insertRow();
+  ["Модель деления", ...cuts.map(c => "спрятаны Z ≥ " + c)].forEach((x,i) => { const th = document.createElement("th"); th.textContent = x; if(i) th.className = "r"; h.appendChild(th); });
+  const b = t.createTBody();
+  const add = (name, vals, bold) => { const row = b.insertRow(); const c0 = row.insertCell(); c0.textContent = name; if(bold) c0.style.fontWeight = 600;
+    vals.forEach(v => { const c = row.insertCell(); c.className = "r num"; c.textContent = fmt(v,1); }); };
+  add("без модели (одно среднее число)", cuts.map(c => S.const[c]));
+  Object.entries(S.res).forEach(([k, r]) => add(k, cuts.map(c => r[c].rms), k === "формула Z²/A + чётность"));
+  const cap = document.getElementById("sf2-cap"); cap.textContent = "";
+  const bb = document.createElement("b"); bb.textContent = "Теоретический барьер не помог. "; cap.appendChild(bb);
+  cap.appendChild(document.createTextNode("Ошибка — в порядках величины; число ядер в проверке: " + cuts.map(c => S.res["формула Z²/A + чётность"][c].n).join(", ") + ". Корреляция высоты барьера с измеренным временем деления почти нулевая: " + fmt(S.corr.bskg3,2) + " для BSkG3 и " + fmt(S.corr.hfb,2) + " для HFB-14. С барьером прогноз становится хуже: ошибка теоретического барьера в 1 МэВ меняет время деления на много порядков, а кроме высоты важны ширина горки и инерция ядра. Лучше всех снова самая простая формула: квадрат заряда на массу (делимость) плюс чётность. Это тот же урок, что и с α-распадом: на краю данных простое переносится лучше сложного. Оговорка: модель выбрана по этим же проверкам, поэтому её ошибка может быть чуть оптимистичной."));
+})();
+(function(){
+  const t = document.getElementById("fin2tab");
+  const old = new Map(D.decay.final.map(r => [r.label, r]));
+  const h = t.createTHead().insertRow();
+  ["Ядро", "α-распад", "деление: формула", "деление: модель по данным", "итог: медиана", "коридор 68%", "шанс α"].forEach((x,i) => { const th = document.createElement("th"); th.textContent = x; if(i) th.className = "r"; h.appendChild(th); });
+  const b = t.createTBody();
+  D.decay2.final.forEach(r => { const o = old.get(r.label); const row = b.insertRow();
+    row.insertCell().textContent = r.label.replace("— 'island' centre?", "— центр острова?").replace("known, reference","известен, для сверки");
+    const pa = Math.round(Math.min(r.p_alpha, o.p_alpha)*100) + "–" + Math.round(Math.max(r.p_alpha, o.p_alpha)*100) + "%";
+    [human(r.a[1]), human(r.sf[1]), human(o.sf[1]), human(r.tot[1]), human(r.tot[0]) + " … " + human(r.tot[2]), pa]
+      .forEach(v => { const c = row.insertCell(); c.className = "r num"; c.textContent = v; }); });
+})();
+
+/* ---------- 3a Eu scatter ---------- */
+(function(){
+  const S = D.stars;
+  document.getElementById("st-n").textContent = S.n.toLocaleString("ru-RU");
+  const el = document.getElementById("eu"), svg = d3.select(el), fig = el.closest("figure"), tip = tooltip(fig);
+  const C = {"normal":"--muted","r-I":"--d","r-II":"--f","s-rich":"--s"};
+  const NM = {"normal":"обычные","r-I":"r-I: европия больше","r-II":"r-II: европия сильно больше","s-rich":"s-богатые: много бария"};
+  const L = document.getElementById("eu-legend");
+  Object.keys(C).forEach(k => { const s = document.createElement("span"); const i = document.createElement("i"); i.style.background = `var(${C[k]})`; s.append(i, NM[k]); L.appendChild(s); });
+  const s4 = document.createElement("span"); const i4 = document.createElement("i"); i4.style.border = "2px solid var(--bad)"; i4.style.borderRadius = "50%"; s4.append(i4, "отмечено детектором аномалий"); L.appendChild(s4);
+  function draw(){
+    const W = width(el), H = Math.min(400, W*.75), m = {l:42, r:12, t:12, b:40};
+    svg.attr("width","100%").attr("viewBox",`0 0 ${W} ${H}`); svg.selectAll("*").remove();
+    const x = d3.scaleLinear([-4.2,0.3],[m.l,W-m.r]), y = d3.scaleLinear([-1.8,2.6],[H-m.b,m.t]);
+    svg.append("g").attr("class","ax").attr("transform",`translate(0,${H-m.b})`).call(d3.axisBottom(x).ticks(6));
+    svg.append("g").attr("class","ax").attr("transform",`translate(${m.l},0)`).call(d3.axisLeft(y).ticks(6));
+    [0.3,0.7].forEach(v => svg.append("line").attr("x1",m.l).attr("x2",W-m.r).attr("y1",y(v)).attr("y2",y(v)).attr("stroke",css("--line")).attr("stroke-dasharray","3 3"));
+    svg.append("text").attr("x",W-m.r).attr("y",H-6).attr("text-anchor","end").attr("font-size",11).style("fill",css("--muted")).text("[Fe/H]: железа меньше солнечного ←");
+    svg.append("text").attr("x",m.l+4).attr("y",m.t+10).attr("font-size",11).style("fill",css("--muted")).text("[Eu/Fe], логарифм относительно Солнца");
+    const pts = S.scatter.filter(d => d[2] != null);
+    svg.append("g").selectAll("circle").data(pts).join("circle").attr("cx",d=>x(d[1])).attr("cy",d=>y(d[2])).attr("r",d=>d[4]?4.5:2.6)
+      .attr("fill",d=>css(C[d[3]])).attr("opacity",d=>d[3]==="normal"?.45:.85)
+      .attr("stroke",d=>d[4]?css("--bad"):"none").attr("stroke-width",1.6)
+      .on("mousemove",(ev,d)=>tip.show(ev, d[0] + "\n[Fe/H] " + fmt(d[1]) + ", [Eu/Fe] " + fmt(d[2]) + "\n" + NM[d[3]] + (d[4] ? "\nаномалия" : ""))).on("mouseleave",()=>tip.hide());
+    const cap = document.getElementById("eu-cap"); cap.textContent = "";
+    const b = document.createElement("b"); b.textContent = S.n_search + " звёзд с полным набором из пяти отношений (Mg, Ca, Sr, Ba, Eu к железу). "; cap.appendChild(b);
+    const fl = Object.values(S.flagged).reduce((a,b)=>a+b,0), ov = Object.values(S.overall).reduce((a,b)=>a+b,0);
+    const pc = (a,b) => Math.round(100*a/b) + "%";
+    cap.appendChild(document.createTextNode("Алгоритм Isolation Forest получил только числа, без названий классов, и отметил " + fl + " самых необычных. s-богатых среди них " + pc(S.flagged["s-rich"]||0, fl) + " при " + pc(S.overall["s-rich"], ov) + " в целом. А r-II-звёзд меньше обычного: " + pc(S.flagged["r-II"]||0, fl) + " против " + pc(S.overall["r-II"], ov) + ". База собрана вокруг r-звёзд, поэтому для неё они норма. Знаменитая звезда Снедена (CS 22892-052) — на " + S.famous["CS22892-052"].rank[0] + "-м месте из " + S.n_search + ", звезда Кайреля с ураном (CS 31082-001) — на " + S.famous["CS31082-001"].rank[0] + "-м. Самые бедные железом звёзды (SMSS J0313−6708, HE 1327−2326) в поиск не попали: европия в них не видно вовсе."));
+  }
+  draw(); window.addEventListener("resize", draw);
+})();
+
+/* ---------- 3b bridge bars ---------- */
+(function(){
+  const el = document.getElementById("br"), svg = d3.select(el), fig = el.closest("figure"), tip = tooltip(fig);
+  const Zn = {Sr:38,Y:39,Zr:40,Ru:44,Rh:45,Pd:46,Ag:47,Ba:56,La:57,Dy:66,Th:90};
+  const grp = el => ["Sr","Y","Zr"].includes(el) ? "--s" : ["Ru","Rh","Pd","Ag"].includes(el) ? "--warn" : "--f";
+  const rows = Object.entries(D.stars.bridge).map(([k,v]) => ({k, ...v})).sort((a,b) => Zn[a.k]-Zn[b.k]);
+  function draw(){
+    const W = width(el), H = 250, m = {l:36, r:12, t:16, b:44};
+    svg.attr("width","100%").attr("viewBox",`0 0 ${W} ${H}`); svg.selectAll("*").remove();
+    const x = d3.scaleBand(rows.map(r=>r.k),[m.l,W-m.r]).padding(.28), y = d3.scaleLinear([0,1.3],[H-m.b,m.t]);
+    svg.append("g").attr("class","ax").attr("transform",`translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickSize(-(W-m.l-m.r))).call(g=>g.selectAll("line").attr("opacity",.5));
+    svg.append("line").attr("x1",m.l).attr("x2",W-m.r).attr("y1",y(1)).attr("y2",y(1)).attr("stroke",css("--ink")).attr("stroke-dasharray","4 3");
+    svg.selectAll("rect.b").data(rows).join("rect").attr("class","b").attr("x",r=>x(r.k)).attr("width",x.bandwidth()).attr("y",r=>y(Math.max(0,r.slope))).attr("height",r=>y(0)-y(Math.max(0,r.slope)))
+      .attr("rx",2).attr("fill",r=>css(grp(r.k))).attr("opacity",r=>r.n<12?.45:1)
+      .on("mousemove",(ev,r)=>tip.show(ev, r.k + " (Z " + Zn[r.k] + ")\nнаклон " + fmt(r.slope) + ", корреляция " + fmt(r.corr) + "\nзвёзд: " + r.n)).on("mouseleave",()=>tip.hide());
+    svg.selectAll("text.l").data(rows).join("text").attr("class","l").attr("x",r=>x(r.k)+x.bandwidth()/2).attr("y",H-m.b+16).attr("text-anchor","middle").attr("font-size",13).attr("font-weight",600).text(r=>r.k);
+    svg.selectAll("text.n").data(rows).join("text").attr("class","n").attr("x",r=>x(r.k)+x.bandwidth()/2).attr("y",H-m.b+31).attr("text-anchor","middle").attr("font-size",10).style("fill",css("--muted")).text(r=>"n=" + r.n);
+    svg.append("text").attr("x",m.l+4).attr("y",m.t-4).attr("font-size",11).style("fill",css("--muted")).text("наклон к [Eu/Fe] (1 = растут вместе); бледные — меньше 12 звёзд");
+  }
+  draw(); window.addEventListener("resize", draw);
+})();
+
+/* ---------- 3c thorium ---------- */
+(function(){
+  const th = D.stars.thorium, el = document.getElementById("th"), svg = d3.select(el), fig = el.closest("figure"), tip = tooltip(fig);
+  function draw(){
+    const W = width(el), H = 220, m = {l:34, r:12, t:12, b:38};
+    svg.attr("width","100%").attr("viewBox",`0 0 ${W} ${H}`); svg.selectAll("*").remove();
+    const x = d3.scaleLinear([-1.2,1.5],[m.l,W-m.r]);
+    const bins = d3.bin().domain(x.domain()).thresholds(d3.range(-1.2,1.51,0.1))(th.map(d=>d[1]));
+    const y = d3.scaleLinear([0, d3.max(bins,b=>b.length)],[H-m.b,m.t]);
+    svg.append("g").attr("class","ax").attr("transform",`translate(0,${H-m.b})`).call(d3.axisBottom(x).ticks(6));
+    svg.append("g").attr("class","ax").attr("transform",`translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4));
+    svg.selectAll("rect").data(bins).join("rect").attr("x",b=>x(b.x0)+1).attr("width",b=>Math.max(0,x(b.x1)-x(b.x0)-2)).attr("y",b=>y(b.length)).attr("height",b=>y(0)-y(b.length))
+      .attr("fill",b=>b.x0>=-0.2?css("--warn"):css("--d"))
+      .on("mousemove",(ev,b)=>tip.show(ev, b.length + " звёзд, log(Th/Eu) от " + fmt(b.x0,1) + " до " + fmt(b.x1,1) + (b.x0>=-0.2 ? "\n" + th.filter(d=>d[1]>=b.x0&&d[1]<b.x1).map(d=>d[0]).join(", ") : ""))).on("mouseleave",()=>tip.hide());
+    svg.append("text").attr("x",W-m.r).attr("y",H-6).attr("text-anchor","end").attr("font-size",11).style("fill",css("--muted")).text("log(Th/Eu)");
+  }
+  draw(); window.addEventListener("resize", draw);
+  const med = d3.median(th, d=>d[1]), boost = th.filter(d=>d[1] >= -0.2).length;
+  const cap = document.getElementById("th-cap"); cap.textContent = "";
+  const b = document.createElement("b"); b.textContent = th.length + " звёзд с измеренным торием. "; cap.appendChild(b);
+  cap.appendChild(document.createTextNode("Торий-232 распадается с периодом 14 млрд лет, а европий стабилен. Поэтому отношение Th/Eu работает как часы: чем оно ниже, тем старее звезда. Медиана " + fmt(med) + ". Оранжевые столбцы — " + boost + " звёзд с «актинидным перекосом» (log Th/Eu ≥ −0,2): тория в них больше, чем допускает возраст. Это значит, что источник r-процесса в разных событиях по-разному «дотягивается» до самых тяжёлых ядер. Именно такие звёзды стоит изучать, чтобы понять, насколько тяжёлыми ядра бывают в природе."));
+})();
+</script>
+</body>
+</html>

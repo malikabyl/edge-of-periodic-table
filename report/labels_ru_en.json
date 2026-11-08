@@ -1,0 +1,15 @@
+{
+ "только массы (как раньше)": "masses only",
+ "массы + Qα до Z=115": "masses + Qalpha up to Z=115",
+ "Виола — Сиборг (было)": "Viola-Seaborg",
+ "Виола — Сиборг по классам": "Viola-Seaborg per parity class",
+ "Ройер (2000)": "Royer (2000)",
+ "Универсальный закон UDL (2009)": "Universal decay law UDL (2009)",
+ "деление: Z²/A + изоспин": "fission: Z^2/A + isospin",
+ "деление: + оболочки N=152, 162": "fission: + shells N=152,162",
+ "без формулы (одно среднее число)": "no formula (training mean)",
+ "формула Z²/A + чётность": "Z^2/A + parity",
+ "+ изоспин (шаг 3)": "+ isospin (step 3)",
+ "+ барьер BSkG3 (теория)": "+ BSkG3 barrier (theory)",
+ "формула Z²/A + чётность + ИИ-поправка": "Z^2/A + parity + GP correction"
+}
