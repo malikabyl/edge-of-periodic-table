@@ -1,0 +1,11 @@
+{
+  "title": "Edge of the Periodic Table: three open-data experiments",
+  "upload_type": "software",
+  "creators": [{"name": "Malik"}],
+  "description": "<p>Three questions about the far end of the periodic table, answered with published open data and fully reproducible code: (1) rebuilding the periodic table from the Madelung rule and, separately, from ionization energies alone; (2) a liquid-drop + Gaussian-process model of superheavy nuclei that uses measured alpha-decay energies as mass-difference constraints and forecasts the half-lives of elements 119 and 120 (about 1–5 ms and 0.06–0.4 ms, alpha decay dominant) with honest, tested uncertainties; (3) an anomaly search and r-process correlations in JINAbase metal-poor stars, including a partial check of the fission-fragment signature of nuclei heavier than uranium.</p><p>Use of AI: the analysis, code and text were produced with Claude (Anthropic) under the direction of the author, who is responsible for the content. Exploratory work, not peer-reviewed.</p>",
+  "license": "MIT",
+  "keywords": ["nuclear physics", "superheavy elements", "periodic table", "machine learning", "Gaussian process", "alpha decay", "spontaneous fission", "r-process", "metal-poor stars", "open data", "reproducible research"],
+  "related_identifiers": [
+    {"identifier": "10.1126/science.adf1341", "relation": "references", "scheme": "doi"}
+  ]
+}
