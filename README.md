@@ -1,6 +1,6 @@
 # Edge of the Periodic Table: three open-data experiments
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24058025.svg)](https://doi.org/10.5281/zenodo.24058025)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24058024.svg)](https://doi.org/10.5281/zenodo.24058024)
 
 Three questions about the far end of the periodic table, answered only with published open datasets and a few hundred lines of Python:
 
@@ -118,7 +118,9 @@ This project was carried out with Claude (Anthropic), an AI assistant, under the
 
 ## How to cite
 
-Malik (2026). *Edge of the Periodic Table: three open-data experiments* (v1.0). Zenodo. https://doi.org/10.5281/zenodo.24058025
+Malik (2026). *Edge of the Periodic Table: three open-data experiments*. Zenodo. https://doi.org/10.5281/zenodo.24058024
+
+This DOI always points to the latest version. To cite exactly v1.0, use https://doi.org/10.5281/zenodo.24058025.
 
 ## License
 
